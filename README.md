@@ -1,2 +1,5 @@
-# youtube-frontend-alternative
-An alternative YouTube frontend with a clean, modern interface
+node_modules
+dist
+.vite
+.DS_Store
+coverage
