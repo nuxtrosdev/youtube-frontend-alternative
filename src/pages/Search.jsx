@@ -1,1 +1,136 @@
-import { useState, useEffect } from 'react';\nimport { useSearchParams, useNavigate } from 'react-router-dom';\nimport { searchVideos } from '../api';\n\nfunction Search() {\n  const [searchParams] = useSearchParams();\n  const navigate = useNavigate();\n  const query = searchParams.get('q') || '';\n  const [videos, setVideos] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const [searchInput, setSearchInput] = useState(query);\n\n  useEffect(() => {\n    if (!query) return;\n\n    const loadSearchResults = async () => {\n      setLoading(true);\n      const { videos: data } = await searchVideos(query, null, 20);\n      setVideos(data);\n      setLoading(false);\n    };\n\n    loadSearchResults();\n  }, [query]);\n\n  const handleSearch = (e) => {\n    if (e.key === 'Enter' && searchInput.trim()) {\n      navigate(`/search?q=${encodeURIComponent(searchInput)}`);\n    }\n  };\n\n  const openVideo = (videoId) => {\n    navigate(`/watch/${videoId}`);\n  };\n\n  return (\n    <div className=\"app-shell\">\n      <aside className=\"sidebar\">\n        <div className=\"brand-row\">\n          <div className=\"brand-mark\">S</div>\n          <div>\n            <p className=\"brand-name\">SkyTube</p>\n            <span className=\"brand-tag\">Alternative</span>\n          </div>\n        </div>\n\n        <nav className=\"nav\">\n          <button type=\"button\" className=\"nav-item\" onClick={() => navigate('/')}>\n            Home\n          </button>\n          <button type=\"button\" className=\"nav-item\">\n            Shorts\n          </button>\n          <button type=\"button\" className=\"nav-item\">\n            Subscriptions\n          </button>\n          <button type=\"button\" className=\"nav-item\">\n            Library\n          </button>\n          <button type=\"button\" className=\"nav-item\">\n            History\n          </button>\n        </nav>\n\n        <div className=\"mini-card\">\n          <p className=\"mini-title\">Search filters</p>\n          <div className=\"creator-list\">\n            <div className=\"creator-item\">\n              <span className=\"channel-dot\" style={{ background: '#ff5f6d' }}></span>\n              Recent\n            </div>\n            <div className=\"creator-item\">\n              <span className=\"channel-dot\" style={{ background: '#5B8DEF' }}></span>\n              Most viewed\n            </div>\n            <div className=\"creator-item\">\n              <span className=\"channel-dot\" style={{ background: '#27c6a3' }}></span>\n              Most liked\n            </div>\n          </div>\n        </div>\n      </aside>\n\n      <main className=\"main-panel\">\n        <header className=\"topbar\">\n          <div className=\"search-wrap\">\n            <span className=\"search-icon\">⌕</span>\n            <input\n              type=\"text\"\n              value={searchInput}\n              onChange={(e) => setSearchInput(e.target.value)}\n              onKeyDown={handleSearch}\n              placeholder=\"Search videos, creators, topics\"\n              aria-label=\"Search\"\n            />\n          </div>\n\n          <div className=\"topbar-actions\">\n            <button type=\"button\" className=\"ghost-btn\">\n              Upload\n            </button>\n            <button type=\"button\" className=\"profile-pill\">\n              ND\n            </button>\n          </div>\n        </header>\n\n        <section style={{ padding: '20px 0' }}>\n          <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Search results for \"{query}\"</h2>\n          <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>\n            Found {videos.length} {videos.length === 1 ? 'result' : 'results'}\n          </p>\n        </section>\n\n        {loading ? (\n          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>\n            Searching...\n          </div>\n        ) : videos.length === 0 ? (\n          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>\n            No videos found. Try a different search term.\n          </div>\n        ) : (\n          <section className=\"videos-grid\">\n            {videos.map((video) => (\n              <article key={video.id} className=\"video-card\">\n                <button type=\"button\" className=\"card-button\" onClick={() => openVideo(video.id)}>\n                  <div className=\"thumb\" style={{ backgroundImage: `url(${video.thumbnail})` }}>\n                    <span className=\"duration\">{video.duration || '0:00'}</span>\n                  </div>\n                  <div className=\"card-meta\">\n                    <div className=\"avatar\" style={{ background: '#' + Math.floor(Math.random() * 16777215).toString(16) }}>\n                      {video.channel[0]}\n                    </div>\n                    <div className=\"details\">\n                      <h3>{video.title}</h3>\n                      <p>{video.channel}</p>\n                      <p>\n                        {video.views} • {new Date(video.publishedAt).toLocaleDateString()}\n                      </p>\n                    </div>\n                  </div>\n                </button>\n              </article>\n            ))}\n          </section>\n        )}\n      </main>\n    </div>\n  );\n}\n\nexport default Search;\n
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { searchVideos } from '../api';
+
+function Search() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const query = searchParams.get('q') || '';
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [queryInput, setQueryInput] = useState(query);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadResults = async () => {
+      if (!query) {
+        setVideos([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      const { videos: data } = await searchVideos(query, null, 20);
+
+      if (isMounted) {
+        setVideos(data);
+        setLoading(false);
+      }
+    };
+
+    loadResults();
+    setQueryInput(query);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [query]);
+
+  const handleSearch = (event) => {
+    if (event.key === 'Enter') {
+      const term = queryInput.trim();
+      if (term) {
+        navigate(`/search?q=${encodeURIComponent(term)}`);
+      }
+    }
+  };
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand-row">
+          <div className="brand-mark">S</div>
+          <div>
+            <p className="brand-name">SkyTube</p>
+            <span className="brand-tag">Alternative</span>
+          </div>
+        </div>
+
+        <nav className="nav">
+          <button type="button" className="nav-item" onClick={() => navigate('/')}>
+            Home
+          </button>
+          <button type="button" className="nav-item">Shorts</button>
+          <button type="button" className="nav-item">Subscriptions</button>
+          <button type="button" className="nav-item">Library</button>
+        </nav>
+      </aside>
+
+      <main className="main-panel">
+        <header className="topbar">
+          <div className="search-wrap">
+            <span className="search-icon">⌕</span>
+            <input
+              type="text"
+              value={queryInput}
+              onChange={(event) => setQueryInput(event.target.value)}
+              onKeyDown={handleSearch}
+              placeholder="Search videos, creators, topics"
+              aria-label="Search"
+            />
+          </div>
+
+          <div className="topbar-actions">
+            <button type="button" className="ghost-btn">Upload</button>
+            <button type="button" className="profile-pill">ND</button>
+          </div>
+        </header>
+
+        <section style={{ padding: '20px 0' }}>
+          <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Search results for "{query || 'all videos'}"</h2>
+          <p style={{ margin: '8px 0 0', color: 'var(--muted)' }}>
+            {loading ? 'Searching...' : `${videos.length} results found`}
+          </p>
+        </section>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>
+            Searching...
+          </div>
+        ) : videos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>
+            No videos found. Try another search.
+          </div>
+        ) : (
+          <section className="videos-grid">
+            {videos.map((video) => (
+              <article key={video.id} className="video-card">
+                <button type="button" className="card-button" onClick={() => navigate(`/watch/${video.id}`)}>
+                  <div className="thumb" style={{ backgroundImage: `url(${video.thumbnail})` }}>
+                    <span className="duration">{video.duration}</span>
+                  </div>
+
+                  <div className="card-meta">
+                    <div className="avatar" style={{ background: '#3b82f6' }}>
+                      {video.channel[0] || 'A'}
+                    </div>
+                    <div className="details">
+                      <h3>{video.title}</h3>
+                      <p>{video.channel}</p>
+                      <p>
+                        {video.views} views • {new Date(video.publishedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </article>
+            ))}
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default Search;
